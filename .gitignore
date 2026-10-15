@@ -1,0 +1,71 @@
+# ==========================================
+# Go build artifacts
+# ==========================================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/bin/
+/build/
+/dist/
+/coverage/
+coverage.txt
+coverage.html
+coverage.out
+*.prof
+*.pprof
+
+# ==========================================
+# IDE / Editor
+# ==========================================
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# ==========================================
+# Environment variables / Secrets
+# ==========================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials.json
+
+# ==========================================
+# Logs / Temporary files
+# ==========================================
+*.log
+/logs/
+/tmp/
+/temp/
+*.tmp
+*.bak
+
+# ==========================================
+# Agent runtime / Local data
+# ==========================================
+/data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+/checkpoints/
+/sessions/
+/cache/
+/.artifacts/
+
+# ==========================================
+# OS generated files
+# ==========================================
+.DS_Store
+Thumbs.db
+desktop.ini
