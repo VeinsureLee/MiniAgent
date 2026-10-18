@@ -23,6 +23,7 @@ coverage.out
 # ==========================================
 .idea/
 .vscode/
+.run/
 *.iml
 *.swp
 *.swo
