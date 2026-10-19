@@ -1,6 +1,8 @@
 package main
 
 import (
+	"MiniAgent/agent"
+	"MiniAgent/utils"
 	"bufio"
 	"context"
 	"fmt"
@@ -8,8 +10,6 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-	"github.com/openai/openai-go/v3"
-	"github.com/openai/openai-go/v3/option"
 	"github.com/openai/openai-go/v3/responses"
 )
 
@@ -18,10 +18,13 @@ func main() {
 		panic(err)
 	}
 
-	client := openai.NewClient(
-		option.WithAPIKey(os.Getenv("DEEPSEEK_API_KEY")),
-		option.WithBaseURL("https://api.deepseek.com"),
-	)
+	cfg, _ := utils.LoadConfig("config/models.yaml")
+	MyAgent, err := agent.NewAgent(*cfg, cfg.DefaultModel)
+	if err != nil {
+		fmt.Printf("DefaultModel: %q\n", cfg.DefaultModel)
+		fmt.Printf("Models: %#v\n", cfg.Models)
+		panic(err)
+	}
 
 	ctx := context.Background()
 	scanner := bufio.NewScanner(os.Stdin)
@@ -48,6 +51,20 @@ func main() {
 			history = history[:1]
 			continue
 		}
+		if question == "/model" {
+			for {
+				fmt.Println("Enter model name:")
+				scanner.Scan()
+				modelName := scanner.Text()
+				err := MyAgent.SwitchModel(*cfg, modelName)
+				if err != nil {
+					fmt.Printf("Model switch error: %s, Please try again.\n", err)
+				} else {
+					break
+				}
+			}
+			continue
+		}
 		if question == "" {
 			continue
 		}
@@ -62,10 +79,10 @@ func main() {
 
 		// 发送完整历史
 		fmt.Print("AI: ")
-		stream := client.Responses.NewStreaming(
+		stream := MyAgent.Client.Responses.NewStreaming(
 			ctx,
 			responses.ResponseNewParams{
-				Model: "deepseek-flash",
+				Model: MyAgent.Model.Model,
 				Input: responses.ResponseNewParamsInputUnion{
 					OfInputItemList: history,
 				},

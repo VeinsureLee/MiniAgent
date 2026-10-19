@@ -1,4 +1,4 @@
-default_model: deepseek
+default_model: kimi
 
 models:
   deepseek:
@@ -15,6 +15,6 @@ models:
 
   kimi:
     model: kimi-k3
-    base_url: https://api.moonshot.cn
+    base_url: https://api.moonshot.cn/v1
     api_key_env: KIMI_API_KEY
     api_type: chat_completions
