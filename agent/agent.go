@@ -1,53 +1,51 @@
 package agent
 
 import (
-	"MiniAgent/utils"
 	"fmt"
 	"os"
+
+	"MiniAgent/config"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
 )
 
 type Agent struct {
-	Model  utils.Model
-	Client *openai.Client
+	ActiveModel config.ModelConfig
+	APIClient   *openai.Client
 }
 
-func NewAgent(
-	config utils.Config,
-	modelName string,
-) (*Agent, error) {
-	model, ok := config.Models[modelName]
+func New(appConfig config.Config, modelAlias string) (*Agent, error) {
+	modelConfig, ok := appConfig.ModelsByAlias[modelAlias]
 	if !ok {
-		return nil, fmt.Errorf("model %q not found", modelName)
+		return nil, fmt.Errorf("model alias %q not found", modelAlias)
 	}
 
-	apiKey := os.Getenv(model.APIKeyEnv)
+	apiKey := os.Getenv(modelConfig.APIKeyEnvVar)
 	if apiKey == "" {
 		return nil, fmt.Errorf(
 			"environment variable %q is not set",
-			model.APIKeyEnv,
+			modelConfig.APIKeyEnvVar,
 		)
 	}
 
-	client := openai.NewClient(
+	apiClient := openai.NewClient(
 		option.WithAPIKey(apiKey),
-		option.WithBaseURL(model.BaseURL),
+		option.WithBaseURL(modelConfig.BaseURL),
 	)
 
 	return &Agent{
-		Model:  model,
-		Client: &client,
+		ActiveModel: modelConfig,
+		APIClient:   &apiClient,
 	}, nil
 }
 
-func (agent *Agent) SwitchModel(config utils.Config, newModelName string) error {
-	next, err := NewAgent(config, newModelName)
+func (a *Agent) SwitchModel(appConfig config.Config, modelAlias string) error {
+	replacement, err := New(appConfig, modelAlias)
 	if err != nil {
 		return err
 	}
 
-	*agent = *next
+	*a = *replacement
 	return nil
 }
