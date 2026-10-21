@@ -1,20 +1,48 @@
 default_model: kimi
 
-models:
+connections:
   deepseek:
-    model: deepseek-chat
     base_url: https://api.deepseek.com
     api_key_env: DEEPSEEK_API_KEY
     api_type: chat_completions
 
   openai:
-    model: gpt-4.1
     base_url: https://api.openai.com/v1
     api_key_env: OPENAI_API_KEY
     api_type: responses
 
-  kimi:
-    model: kimi-k3
+  openai_alt:
+    base_url: https://api.openai.com/v1
+    api_key_env: OPENAI_ALT_API_KEY
+    api_type: responses
+
+  moonshot:
     base_url: https://api.moonshot.cn/v1
     api_key_env: KIMI_API_KEY
+    api_type: responses
+
+models:
+  kimi:
+    connection: moonshot
+    id: kimi-k3
+
+  deepseek-chat:
+    connection: deepseek
+    id: deepseek-chat
+
+  deepseek-reasoner:
+    connection: deepseek
+    id: deepseek-reasoner
+
+  gpt:
+    connection: openai
+    id: gpt-4.1
+
+  gpt-alt:
+    connection: openai_alt
+    id: gpt-4.1
+
+  gpt-chat:
+    connection: openai
+    id: gpt-4.1
     api_type: chat_completions

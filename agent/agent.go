@@ -11,31 +11,31 @@ import (
 )
 
 type Agent struct {
-	ActiveModel config.ModelConfig
+	ActiveModel config.ResolvedModelConfig
 	APIClient   *openai.Client
 }
 
 func New(appConfig config.Config, modelAlias string) (*Agent, error) {
-	modelConfig, ok := appConfig.ModelsByAlias[modelAlias]
-	if !ok {
+	resolvedModelConfig, err := appConfig.Resolve(modelAlias)
+	if err != nil {
 		return nil, fmt.Errorf("model alias %q not found", modelAlias)
 	}
 
-	apiKey := os.Getenv(modelConfig.APIKeyEnvVar)
+	apiKey := os.Getenv(resolvedModelConfig.APIKeyEnvVar)
 	if apiKey == "" {
 		return nil, fmt.Errorf(
 			"environment variable %q is not set",
-			modelConfig.APIKeyEnvVar,
+			resolvedModelConfig.APIKeyEnvVar,
 		)
 	}
 
 	apiClient := openai.NewClient(
 		option.WithAPIKey(apiKey),
-		option.WithBaseURL(modelConfig.BaseURL),
+		option.WithBaseURL(resolvedModelConfig.BaseURL),
 	)
 
 	return &Agent{
-		ActiveModel: modelConfig,
+		ActiveModel: resolvedModelConfig,
 		APIClient:   &apiClient,
 	}, nil
 }
