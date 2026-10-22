@@ -17,7 +17,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	chatAgent, err := agent.New(*appConfig, appConfig.DefaultModelAlias)
+	chatAgent, err := agent.NewAgent(*appConfig, appConfig.DefaultModelAlias)
 	if err != nil {
 		panic(err)
 	}
@@ -25,6 +25,5 @@ func main() {
 	userInputChannel := make(chan string)
 	go cli.Input(userInputChannel)
 
-	chatAgent.Run(userInputChannel)
-
+	cli.Run(userInputChannel, chatAgent)
 }

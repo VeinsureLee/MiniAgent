@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"MiniAgent/config"
 
@@ -18,7 +19,7 @@ type Agent struct {
 	AppConfig   *config.Config
 }
 
-func New(appConfig config.Config, modelAlias string) (*Agent, error) {
+func NewAgent(appConfig config.Config, modelAlias string) (*Agent, error) {
 	resolvedModelConfig, err := appConfig.Resolve(modelAlias)
 	if err != nil {
 		return nil, fmt.Errorf("model alias %q not found", modelAlias)
@@ -45,105 +46,64 @@ func New(appConfig config.Config, modelAlias string) (*Agent, error) {
 }
 
 func (chatAgent *Agent) SwitchModel(userInputChannel chan string) error {
-	for {
-		fmt.Println("Please enter your model alias: ")
-		modelAlias := <-userInputChannel
-
-		replacement, err := New(*chatAgent.AppConfig, modelAlias)
-		if err != nil {
-			return err
-		}
-		*chatAgent = *replacement
-		return nil
+	fmt.Println("Please enter your model alias: ")
+	modelAlias, ok := <-userInputChannel
+	if !ok {
+		return fmt.Errorf("input closed while selecting a model")
 	}
+
+	replacement, err := NewAgent(*chatAgent.AppConfig, modelAlias)
+	if err != nil {
+		return err
+	}
+	*chatAgent = *replacement
+	return nil
 }
 
 func (chatAgent *Agent) StreamReply(
 	ctx context.Context,
-	conversation responses.ResponseInputParam,
+	conversation History,
 ) (string, error) {
 	fmt.Print("AI: ")
+	defer fmt.Println()
+
 	responseStream := chatAgent.APIClient.Responses.NewStreaming(
 		ctx,
 		responses.ResponseNewParams{
 			Model: chatAgent.ActiveModel.ModelID,
 			Input: responses.ResponseNewParamsInputUnion{
-				OfInputItemList: conversation,
+				OfInputItemList: conversation.Messages,
 			},
 		},
 	)
 	defer func() { _ = responseStream.Close() }()
 
-	var assistantReply string
+	var assistantReply strings.Builder
+	completed := false
 	for responseStream.Next() {
 		event := responseStream.Current()
-		fmt.Print(event.Delta)
-		if event.JSON.Text.Valid() {
-			fmt.Println()
-			fmt.Println("==================")
-			assistantReply = event.Text
-			break
+		switch event.Type {
+		case "response.output_text.delta", "response.refusal.delta":
+			fmt.Print(event.Delta)
+			assistantReply.WriteString(event.Delta)
+		case "response.completed":
+			completed = true
+		case "response.failed":
+			return "", fmt.Errorf("response failed (%s): %s", event.Response.Error.Code, event.Response.Error.Message)
+		case "response.incomplete":
+			return "", fmt.Errorf("response incomplete: %s", event.Response.IncompleteDetails.Reason)
+		case "error":
+			return "", fmt.Errorf("response error (%s): %s", event.Code, event.Message)
 		}
 	}
 	if err := responseStream.Err(); err != nil {
-		return "", err
+		return "", fmt.Errorf("stream response: %w", err)
 	}
-	return assistantReply, nil
-}
-
-func (chatAgent *Agent) Run(userInputChannel chan string) {
-	ctx := context.Background()
-
-	conversation := responses.ResponseInputParam{
-		responses.ResponseInputItemParamOfMessage(
-			"You are a helpful assistant.",
-			responses.EasyInputMessageRoleSystem,
-		),
+	if !completed {
+		return "", fmt.Errorf("response stream ended before completion")
 	}
-
-	for {
-		fmt.Print("You: ")
-
-		userInput, ok := <-userInputChannel
-		if !ok {
-			fmt.Println("You are not input channel.")
-		}
-
-		if userInput == "/q" {
-			break
-		}
-		if userInput == "/clear" {
-			conversation = conversation[:1]
-			continue
-		}
-		if userInput == "/model" {
-			for err := chatAgent.SwitchModel(userInputChannel); err != nil; {
-				fmt.Println("Error: ", err)
-				err = chatAgent.SwitchModel(userInputChannel)
-			}
-			continue
-		}
-		if userInput == "" {
-			continue
-		}
-
-		conversation = append(conversation,
-			responses.ResponseInputItemParamOfMessage(
-				userInput,
-				responses.EasyInputMessageRoleUser,
-			),
-		)
-
-		assistantReply, err := chatAgent.StreamReply(ctx, conversation)
-		if err != nil {
-			panic(err)
-		}
-
-		conversation = append(conversation,
-			responses.ResponseInputItemParamOfMessage(
-				assistantReply,
-				responses.EasyInputMessageRoleAssistant,
-			),
-		)
+	if strings.TrimSpace(assistantReply.String()) == "" {
+		return "", fmt.Errorf("model returned an empty reply")
 	}
+	return assistantReply.String(), nil
 }
