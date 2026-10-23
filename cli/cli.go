@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/openai/openai-go/v3"
-	"github.com/openai/openai-go/v3/responses"
 )
 
 func Input(c chan<- string) {
@@ -61,7 +60,7 @@ func Run(userInputChannel chan string, chatAgent *agent.Agent) {
 		}
 
 		messageCount := len(history.Messages)
-		history.PushMessage(userInput, responses.EasyInputMessageRoleUser)
+		history.PushMessage(userInput, agent.RoleUser)
 
 		assistantReply, err := chatAgent.StreamReply(ctx, history)
 		if err != nil {
@@ -74,7 +73,7 @@ func Run(userInputChannel chan string, chatAgent *agent.Agent) {
 			continue
 		}
 
-		history.PushMessage(assistantReply, responses.EasyInputMessageRoleAssistant)
+		history.PushMessage(assistantReply, agent.RoleAssistant)
 		fmt.Println("==================")
 	}
 }

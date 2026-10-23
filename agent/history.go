@@ -1,30 +1,24 @@
 package agent
 
-import "github.com/openai/openai-go/v3/responses"
-
 type History struct {
-	Messages responses.ResponseInputParam
+	Messages []Message
 }
 
 func NewHistory(systemPrompt string) History {
-	conversation := responses.ResponseInputParam{
-		responses.ResponseInputItemParamOfMessage(
-			systemPrompt,
-			responses.EasyInputMessageRoleSystem,
-		),
+	msg := Message{
+		Role:    RoleSystem,
+		Content: systemPrompt,
 	}
-	return History{Messages: conversation}
+	return History{Messages: []Message{msg}}
 }
 
 func (h *History) ClearMessages() {
 	h.Messages = h.Messages[:1]
 }
 
-func (h *History) PushMessage(message string, role responses.EasyInputMessageRole) {
-	h.Messages = append(h.Messages,
-		responses.ResponseInputItemParamOfMessage(
-			message,
-			role,
-		),
-	)
+func (h *History) PushMessage(message string, role Role) {
+	h.Messages = append(h.Messages, Message{
+		Role:    role,
+		Content: message,
+	})
 }

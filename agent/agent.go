@@ -67,12 +67,17 @@ func (chatAgent *Agent) StreamReply(
 	fmt.Print("AI: ")
 	defer fmt.Println()
 
+	input := make(responses.ResponseInputParam, len(conversation.Messages))
+	for i, message := range conversation.Messages {
+		input[i] = ToOpenAI(message)
+	}
+
 	responseStream := chatAgent.APIClient.Responses.NewStreaming(
 		ctx,
 		responses.ResponseNewParams{
 			Model: chatAgent.ActiveModel.ModelID,
 			Input: responses.ResponseNewParamsInputUnion{
-				OfInputItemList: conversation.Messages,
+				OfInputItemList: input,
 			},
 		},
 	)
