@@ -3,9 +3,24 @@ package config
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"go.yaml.in/yaml/v4"
 )
+
+var (
+	appConfig     *Config
+	appConfigErr  error
+	appConfigOnce sync.Once
+)
+
+func GetAppConfig() (*Config, error) {
+	appConfigOnce.Do(func() {
+		appConfig, appConfigErr = Load("config/models.yaml")
+	})
+
+	return appConfig, appConfigErr
+}
 
 // ConnectionConfig API 连接配置
 type ConnectionConfig struct {

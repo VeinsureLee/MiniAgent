@@ -13,7 +13,7 @@ func main() {
 		panic(err)
 	}
 
-	appConfig, err := config.Load("config/models.yaml")
+	appConfig, err := config.GetAppConfig()
 	if err != nil {
 		panic(err)
 	}
