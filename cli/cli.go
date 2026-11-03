@@ -29,6 +29,7 @@ func Input(c chan<- string) {
 
 func Run(userInputChannel chan string, chatAgent *agent.Agent) {
 	ctx := context.Background()
+	registry := command.NewRegistry()
 
 	history := agent.NewHistory("You are a helpful assistant.")
 	for {
@@ -42,7 +43,7 @@ func Run(userInputChannel chan string, chatAgent *agent.Agent) {
 		userInput = strings.TrimSpace(userInput)
 
 		if command.IsCommand(userInput) {
-			handler := command.Router(userInput)
+			handler := registry.Router(userInput)
 			quit, err := handler(
 				&history,
 				chatAgent,
